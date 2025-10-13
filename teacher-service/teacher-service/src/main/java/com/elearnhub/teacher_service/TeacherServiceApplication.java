@@ -1,0 +1,23 @@
+package com.elearnhub.teacher_service;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+
+@SpringBootApplication
+public class TeacherServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(TeacherServiceApplication.class, args);
+		System.out.println("Hello from teacher!");
+		
+		
+//		public static void main(String[] args) {
+//		    System.out.println(new BCryptPasswordEncoder().encode("12345"));
+//		}
+
+		
+	}
+
+}
