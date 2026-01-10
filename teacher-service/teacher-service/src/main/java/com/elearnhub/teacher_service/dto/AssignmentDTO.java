@@ -9,21 +9,22 @@ public class AssignmentDTO {
     private LocalDateTime dueDate;
     private Double maxGrade;
     private Long courseId;
+    private Long classId;
+    private Double weight;
+    private Boolean allowLateSubmission;
+    private Double latePenalty;
+    private String additionalInstructions;
+    private String status;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     // Constructors
     public AssignmentDTO() {
+        this.allowLateSubmission = false;
+        this.status = "published";
     }
 
-    public AssignmentDTO(Long id, String title, String description, LocalDateTime dueDate, Double maxGrade, Long courseId) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.dueDate = dueDate;
-        this.maxGrade = maxGrade;
-        this.courseId = courseId;
-    }
-
-    // Getters and setters
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -71,5 +72,68 @@ public class AssignmentDTO {
     public void setCourseId(Long courseId) {
         this.courseId = courseId;
     }
-}
 
+    public Long getClassId() {
+        return classId;
+    }
+
+    public void setClassId(Long classId) {
+        this.classId = classId;
+    }
+
+    public Double getWeight() {
+        return weight;
+    }
+
+    public void setWeight(Double weight) {
+        this.weight = weight;
+    }
+
+    public Boolean getAllowLateSubmission() {
+        return allowLateSubmission;
+    }
+
+    public void setAllowLateSubmission(Boolean allowLateSubmission) {
+        this.allowLateSubmission = allowLateSubmission;
+    }
+
+    public Double getLatePenalty() {
+        return latePenalty;
+    }
+
+    public void setLatePenalty(Double latePenalty) {
+        this.latePenalty = latePenalty;
+    }
+
+    public String getAdditionalInstructions() {
+        return additionalInstructions;
+    }
+
+    public void setAdditionalInstructions(String additionalInstructions) {
+        this.additionalInstructions = additionalInstructions;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}

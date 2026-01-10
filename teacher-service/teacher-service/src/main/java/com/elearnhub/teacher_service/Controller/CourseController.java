@@ -1,10 +1,14 @@
 package com.elearnhub.teacher_service.Controller;
 
+import com.elearnhub.teacher_service.dto.ClassDTO;
 import com.elearnhub.teacher_service.dto.CourseDTO;
 import com.elearnhub.teacher_service.entity.Course;
 import com.elearnhub.teacher_service.entity.User;
+import com.elearnhub.teacher_service.repository.ClassEntityRepository;
+import com.elearnhub.teacher_service.service.ClassService;
 import com.elearnhub.teacher_service.service.CourseService;
 import com.elearnhub.teacher_service.service.UserService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,22 +28,27 @@ import java.util.stream.Collectors;
 public class CourseController {
 
     @Autowired
+    private ClassService classService;
+
+    @Autowired
     private CourseService courseService;
 
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private ClassEntityRepository classRepository;
+
     // ✅ Create course - matches frontend format
     @PostMapping
     @PreAuthorize("hasRole('TEACHER')")
-    public ResponseEntity<?> createCourse(
-            @RequestBody Map<String, String> request,
-            Authentication authentication) {
+    public ResponseEntity<?> createCourse(@RequestBody Map<String, String> request,
+                                        Authentication authentication) {
         try {
             // Get teacher from authentication
             String username = authentication.getName();
             User teacher = userService.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Teacher not found"));
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
             // Frontend sends: { name, subject, description }
             String courseName = request.get("name");
@@ -50,7 +59,6 @@ public class CourseController {
             if (courseName == null || courseName.trim().isEmpty()) {
                 courseName = subject != null ? subject : "Untitled Course";
             }
-
             if (description == null) {
                 description = "";
             }
@@ -68,16 +76,13 @@ public class CourseController {
             // Response format matching frontend expectations
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Course created successfully");
-            
             Map<String, Object> courseResponse = new HashMap<>();
             courseResponse.put("id", createdCourse.getId());
             courseResponse.put("name", createdCourse.getName());
             courseResponse.put("subject", createdCourse.getName()); // For frontend compatibility
             courseResponse.put("description", createdCourse.getDescription());
             courseResponse.put("teacherId", createdCourse.getTeacherId());
-            courseResponse.put("students", createdCourse.getStudents() != null ? 
-                    createdCourse.getStudents().size() : 0);
-            
+            courseResponse.put("students", 0); // New course has 0 students
             response.put("course", courseResponse);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -96,15 +101,15 @@ public class CourseController {
             // Get teacher from authentication
             String username = authentication.getName();
             User teacher = userService.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Teacher not found"));
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
             // Get courses for this teacher only
             List<Course> courses = courseService.getCoursesByTeacherId(teacher.getId());
-            
+
             // Convert to frontend format
             List<Map<String, Object>> response = courses.stream()
-                    .map(this::convertCourseToResponse)
-                    .collect(Collectors.toList());
+                .map(this::convertCourseToResponse)
+                .collect(Collectors.toList());
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -114,54 +119,79 @@ public class CourseController {
         }
     }
 
-    // ✅ Get single course by ID
-    @GetMapping("/{id}")
-    @PreAuthorize("hasRole('TEACHER')")
-    public ResponseEntity<?> getCourseById(@PathVariable Long id, Authentication authentication) {
+    @GetMapping("/{courseId}")
+    @PreAuthorize("hasRole('TEACHER') || hasRole('STUDENT')")
+    @Transactional
+    public ResponseEntity<?> getCourseById(@PathVariable Long courseId,
+                                         Authentication authentication) {
         try {
             String username = authentication.getName();
-            User teacher = userService.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Teacher not found"));
+            User user = userService.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-            Optional<Course> courseOptional = courseService.getCourseById(id);
-            
+            Optional<Course> courseOptional = courseService.getCourseById(courseId);
             if (courseOptional.isEmpty()) {
-                Map<String, String> error = new HashMap<>();
-                error.put("message", "Course not found");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Course not found with ID: " + courseId));
             }
 
             Course course = courseOptional.get();
 
-            // Verify course belongs to teacher
-            if (!course.getTeacherId().equals(teacher.getId())) {
-                Map<String, String> error = new HashMap<>();
-                error.put("message", "Unauthorized: Course does not belong to this teacher");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            // ===========================
+            //  TEACHER ACCESS VALIDATION
+            // ===========================
+            if (user.getRole().equals("TEACHER")) {
+                if (!course.getTeacherId().equals(user.getId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("message", "Unauthorized: Course does not belong to this teacher"));
+                }
+            }
+            // ===========================
+            //  STUDENT ACCESS VALIDATION
+            // ===========================
+            else if (user.getRole().equals("STUDENT")) {
+                boolean isEnrolled = false;
+                // Option 1 → Direct enrollment in course
+                if (course.getStudents() != null) {
+                    course.getStudents().size(); // force lazy load
+                    isEnrolled = course.getStudents().stream()
+                        .anyMatch(student -> student.getId().equals(user.getId()));
+                }
+                // Option 2 → Enrollment through a ClassEntity (class assigned to course)
+                if (!isEnrolled) {
+                    isEnrolled = classRepository.isStudentEnrolledInCourse(courseId, user.getId());
+                }
+                if (!isEnrolled) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("message", "Unauthorized: You are not enrolled in this course"));
+                }
             }
 
-            return ResponseEntity.ok(convertCourseToResponse(course));
+            // ===========================
+            // SUCCESS → RETURN COURSE
+            // ===========================
+            return ResponseEntity.ok(course);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("message", "Failed to fetch course: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("message", "Failed to fetch course: " + e.getMessage()));
         }
     }
 
     // ✅ Update course
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('TEACHER')")
-    public ResponseEntity<?> updateCourse(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> request,
-            Authentication authentication) {
+    public ResponseEntity<?> updateCourse(@PathVariable Long id,
+                                        @RequestBody Map<String, String> request,
+                                        Authentication authentication) {
         try {
             String username = authentication.getName();
             User teacher = userService.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Teacher not found"));
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
             Optional<Course> courseOptional = courseService.getCourseById(id);
-            
             if (courseOptional.isEmpty()) {
                 Map<String, String> error = new HashMap<>();
                 error.put("message", "Course not found");
@@ -169,7 +199,6 @@ public class CourseController {
             }
 
             Course existingCourse = courseOptional.get();
-
             // Verify course belongs to teacher
             if (!existingCourse.getTeacherId().equals(teacher.getId())) {
                 Map<String, String> error = new HashMap<>();
@@ -186,7 +215,6 @@ public class CourseController {
             }
 
             Course updatedCourse = courseService.updateCourse(id, existingCourse);
-
             return ResponseEntity.ok(convertCourseToResponse(updatedCourse));
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
@@ -202,10 +230,9 @@ public class CourseController {
         try {
             String username = authentication.getName();
             User teacher = userService.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Teacher not found"));
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
             Optional<Course> courseOptional = courseService.getCourseById(id);
-            
             if (courseOptional.isEmpty()) {
                 Map<String, String> error = new HashMap<>();
                 error.put("message", "Course not found");
@@ -213,7 +240,6 @@ public class CourseController {
             }
 
             Course course = courseOptional.get();
-
             // Verify course belongs to teacher
             if (!course.getTeacherId().equals(teacher.getId())) {
                 Map<String, String> error = new HashMap<>();
@@ -238,26 +264,34 @@ public class CourseController {
         response.put("subject", course.getName()); // For frontend compatibility
         response.put("description", course.getDescription() != null ? course.getDescription() : "");
         response.put("teacherId", course.getTeacherId());
-        response.put("students", course.getStudents() != null ? course.getStudents().size() : 0);
+        
+        // ✅ FIX: Get student count using service method to avoid lazy loading
+        try {
+            int studentCount = courseService.getStudentCount(course.getId());
+            response.put("students", studentCount);
+        } catch (Exception e) {
+            // Fallback to 0 if there's an error getting student count
+            response.put("students", 0);
+        }
+        
         return response;
     }
-    
+
     // ✅ NEW: Add student to course
     @PostMapping("/{courseId}/students/{studentId}")
     @PreAuthorize("hasRole('TEACHER')")
-    public ResponseEntity<?> addStudentToCourse(
-            @PathVariable Long courseId,
-            @PathVariable Long studentId,
-            Authentication authentication) {
+    public ResponseEntity<?> addStudentToCourse(@PathVariable Long courseId,
+                                              @PathVariable Long studentId,
+                                              Authentication authentication) {
         try {
             // Get teacher from authentication
             String username = authentication.getName();
             User teacher = userService.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Teacher not found"));
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
             // Verify course exists and belongs to teacher
             Course course = courseService.getCourseById(courseId)
-                    .orElseThrow(() -> new RuntimeException("Course not found"));
+                .orElseThrow(() -> new RuntimeException("Course not found"));
 
             if (!course.getTeacherId().equals(teacher.getId())) {
                 Map<String, String> error = new HashMap<>();
@@ -267,7 +301,7 @@ public class CourseController {
 
             // Verify student exists
             User student = userService.getUserById(studentId)
-                    .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> new RuntimeException("Student not found"));
 
             // Verify student role
             if (!"STUDENT".equals(student.getRole())) {
@@ -284,7 +318,6 @@ public class CourseController {
             response.put("courseId", courseId);
             response.put("studentId", studentId);
             response.put("studentName", student.getName() != null ? student.getName() : student.getUsername());
-
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -300,19 +333,18 @@ public class CourseController {
     // ✅ NEW: Remove student from course
     @DeleteMapping("/{courseId}/students/{studentId}")
     @PreAuthorize("hasRole('TEACHER')")
-    public ResponseEntity<?> removeStudentFromCourse(
-            @PathVariable Long courseId,
-            @PathVariable Long studentId,
-            Authentication authentication) {
+    public ResponseEntity<?> removeStudentFromCourse(@PathVariable Long courseId,
+                                                   @PathVariable Long studentId,
+                                                   Authentication authentication) {
         try {
             // Get teacher from authentication
             String username = authentication.getName();
             User teacher = userService.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Teacher not found"));
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
             // Verify course exists and belongs to teacher
             Course course = courseService.getCourseById(courseId)
-                    .orElseThrow(() -> new RuntimeException("Course not found"));
+                .orElseThrow(() -> new RuntimeException("Course not found"));
 
             if (!course.getTeacherId().equals(teacher.getId())) {
                 Map<String, String> error = new HashMap<>();
@@ -327,7 +359,6 @@ public class CourseController {
             response.put("message", "Student removed from course successfully");
             response.put("courseId", courseId);
             response.put("studentId", studentId);
-
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -343,18 +374,17 @@ public class CourseController {
     // ✅ NEW: Get all students in a course
     @GetMapping("/{courseId}/students")
     @PreAuthorize("hasRole('TEACHER')")
-    public ResponseEntity<?> getCourseStudents(
-            @PathVariable Long courseId,
-            Authentication authentication) {
+    public ResponseEntity<?> getCourseStudents(@PathVariable Long courseId,
+                                             Authentication authentication) {
         try {
             // Get teacher from authentication
             String username = authentication.getName();
             User teacher = userService.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Teacher not found"));
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
 
             // Verify course exists and belongs to teacher
             Course course = courseService.getCourseById(courseId)
-                    .orElseThrow(() -> new RuntimeException("Course not found"));
+                .orElseThrow(() -> new RuntimeException("Course not found"));
 
             if (!course.getTeacherId().equals(teacher.getId())) {
                 Map<String, String> error = new HashMap<>();
@@ -366,16 +396,14 @@ public class CourseController {
             List<User> students = courseService.getCourseStudents(courseId);
 
             // Convert to response format
-            List<Map<String, Object>> response = students.stream()
-                    .map(student -> {
-                        Map<String, Object> studentData = new HashMap<>();
-                        studentData.put("id", student.getId());
-                        studentData.put("username", student.getUsername());
-                        studentData.put("name", student.getName() != null ? student.getName() : student.getUsername());
-                        studentData.put("email", student.getEmail() != null ? student.getEmail() : "");
-                        return studentData;
-                    })
-                    .collect(Collectors.toList());
+            List<Map<String, Object>> response = students.stream().map(student -> {
+                Map<String, Object> studentData = new HashMap<>();
+                studentData.put("id", student.getId());
+                studentData.put("username", student.getUsername());
+                studentData.put("name", student.getName() != null ? student.getName() : student.getUsername());
+                studentData.put("email", student.getEmail() != null ? student.getEmail() : "");
+                return studentData;
+            }).collect(Collectors.toList());
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
@@ -389,4 +417,3 @@ public class CourseController {
         }
     }
 }
-

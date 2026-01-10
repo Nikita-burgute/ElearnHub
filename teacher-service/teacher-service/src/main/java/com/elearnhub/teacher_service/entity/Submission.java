@@ -1,52 +1,54 @@
 package com.elearnhub.teacher_service.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "submission")
 public class Submission {
-	@Id
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @ManyToOne
     @JoinColumn(name = "assignment_id", nullable = false)
     private Assignment assignment;
-    
+
     @ManyToOne
     @JoinColumn(name = "student_id", nullable = false)
-    private User student;  // User with STUDENT role
-    
+    private User student;
+
+    @Column(name = "content", columnDefinition = "TEXT")
     private String content;
+
+    @Column(name = "file_path")
     private String filePath;
+
+    @Column(name = "submitted_at", nullable = false)
     private LocalDateTime submittedAt;
+
+    @Column(name = "grade")
     private Double grade;
+
+    @Column(name = "feedback", columnDefinition = "TEXT")
     private String feedback;
-    
-    
+
+    @Column(name = "graded_at")
+    private LocalDateTime gradedAt;
 
     // Constructors
     public Submission() {
     }
 
-    
+    public Submission(Assignment assignment, User student, String content, String filePath) {
+        this.assignment = assignment;
+        this.student = student;
+        this.content = content;
+        this.filePath = filePath;
+        this.submittedAt = LocalDateTime.now();
+    }
 
-    public Submission(Long id, Assignment assignment, User student, String content, String filePath,
-			LocalDateTime submittedAt, Double grade, String feedback) {
-		super();
-		this.id = id;
-		this.assignment = assignment;
-		this.student = student;
-		this.content = content;
-		this.filePath = filePath;
-		this.submittedAt = submittedAt;
-		this.grade = grade;
-		this.feedback = feedback;
-	}
-
-	// Getters and setters
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -55,7 +57,21 @@ public class Submission {
         this.id = id;
     }
 
-  
+    public Assignment getAssignment() {
+        return assignment;
+    }
+
+    public void setAssignment(Assignment assignment) {
+        this.assignment = assignment;
+    }
+
+    public User getStudent() {
+        return student;
+    }
+
+    public void setStudent(User student) {
+        this.student = student;
+    }
 
     public String getContent() {
         return content;
@@ -81,54 +97,30 @@ public class Submission {
         this.submittedAt = submittedAt;
     }
 
+    public Double getGrade() {
+        return grade;
+    }
 
+    public void setGrade(Double grade) {
+        this.grade = grade;
+        if (grade != null) {
+            this.gradedAt = LocalDateTime.now();
+        }
+    }
 
-	public Assignment getAssignment() {
-		return assignment;
-	}
+    public String getFeedback() {
+        return feedback;
+    }
 
+    public void setFeedback(String feedback) {
+        this.feedback = feedback;
+    }
 
+    public LocalDateTime getGradedAt() {
+        return gradedAt;
+    }
 
-	public void setAssignment(Assignment assignment) {
-		this.assignment = assignment;
-	}
-
-
-
-	public User getStudent() {
-		return student;
-	}
-
-
-
-	public void setStudent(User student) {
-		this.student = student;
-	}
-
-
-
-	public Double getGrade() {
-		return grade;
-	}
-
-
-
-	public void setGrade(Double grade) {
-		this.grade = grade;
-	}
-
-
-
-	public String getFeedback() {
-		return feedback;
-	}
-
-
-
-	public void setFeedback(String feedback) {
-		this.feedback = feedback;
-	}
-    
-    
+    public void setGradedAt(LocalDateTime gradedAt) {
+        this.gradedAt = gradedAt;
+    }
 }
-

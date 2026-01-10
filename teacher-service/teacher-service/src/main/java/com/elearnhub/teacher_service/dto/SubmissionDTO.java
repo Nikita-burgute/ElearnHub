@@ -2,40 +2,31 @@ package com.elearnhub.teacher_service.dto;
 
 import java.time.LocalDateTime;
 
-import com.elearnhub.teacher_service.entity.Assignment;
-
 public class SubmissionDTO {
     private Long id;
     private Long assignmentId;
     private Long studentId;
-    private String studentName; // For display purposes
+    private String studentName;
     private String content;
     private String filePath;
-    private LocalDateTime submittedAt;  // ✅ This is LocalDateTime, not String
-
-    
-    private Double grade; // Current grade if graded
-    private String feedback; // Feedback if graded
+    private LocalDateTime submittedAt;
+    private Double grade;
+    private String feedback;
+    private LocalDateTime gradedAt;
 
     // Constructors
     public SubmissionDTO() {
     }
 
-    public SubmissionDTO(Long id, Long assignmentId, Long studentId, String studentName, 
-                       String content, String filePath, LocalDateTime submittedAt, 
-                       Double grade, String feedback) {
-        this.id = id;
+    public SubmissionDTO(Long assignmentId, Long studentId, String content, String filePath) {
         this.assignmentId = assignmentId;
         this.studentId = studentId;
-        this.studentName = studentName;
         this.content = content;
         this.filePath = filePath;
-        this.submittedAt = submittedAt;
-        this.grade = grade;
-        this.feedback = feedback;
+        this.submittedAt = LocalDateTime.now();
     }
 
-    // Getters and setters
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -48,8 +39,8 @@ public class SubmissionDTO {
         return assignmentId;
     }
 
-    public void setAssignmentId(Long assignment) {
-        this.assignmentId = assignment;
+    public void setAssignmentId(Long assignmentId) {
+        this.assignmentId = assignmentId;
     }
 
     public Long getStudentId() {
@@ -107,5 +98,12 @@ public class SubmissionDTO {
     public void setFeedback(String feedback) {
         this.feedback = feedback;
     }
-}
 
+    public LocalDateTime getGradedAt() {
+        return gradedAt;
+    }
+
+    public void setGradedAt(LocalDateTime gradedAt) {
+        this.gradedAt = gradedAt;
+    }
+}

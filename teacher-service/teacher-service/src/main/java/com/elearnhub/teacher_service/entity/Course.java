@@ -3,93 +3,139 @@ package com.elearnhub.teacher_service.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Data
-@NoArgsConstructor
+@Table(name = "courses")
 public class Course {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotNull(message = "Name cannot be null")
-    @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
+    
+    @NotNull(message = "Course name cannot be null")
+    @Size(min = 2, max = 100, message = "Course name must be between 2 and 100 characters")
     private String name;
-
-    @NotNull(message = "Description cannot be null")
-    @Size(max = 500, message = "Description must not exceed 500 characters")
+    
+    @Size(max = 500, message = "Description cannot exceed 500 characters")
     private String description;
-
-    @NotNull(message = "Teacher ID cannot be null")
+    
+    @Column(name = "teacher_id")
     private Long teacherId;
-
-    @ManyToMany
+    
+    @ManyToOne
+    @JoinColumn(name = "teacher_id", insertable = false, updatable = false)
+    private User teacher;
+    
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "course_student",
+        name = "course_students",
         joinColumns = @JoinColumn(name = "course_id"),
         inverseJoinColumns = @JoinColumn(name = "student_id")
     )
-    
     private List<User> students;
-
-	public Course() {
-		super();
-		// TODO Auto-generated constructor stub
-	}
-
-	public Course(Long id, String name, String description, Long teacherId, List<User> students) {
-		super();
-		this.id = id;
-		this.name = name;
-		this.description = description;
-		this.teacherId = teacherId;
-		this.students = students;
-	}
-
-	public Long getId() {
-		return id;
-	}
-
-	public void setId(Long id) {
-		this.id = id;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public String getDescription() {
-		return description;
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
-	}
-
-	public Long getTeacherId() {
-		return teacherId;
-	}
-
-	public void setTeacherId(Long teacherId) {
-		this.teacherId = teacherId;
-	}
-
-	public List<User> getStudents() {
-		return students;
-	}
-
-	public void setStudents(List<User> students) {
-		this.students = students;
-	}
     
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
     
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+    
+    // Default constructor
+    public Course() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    // Constructor with basic fields
+    public Course(String name, String description, User teacher) {
+        this();
+        this.name = name;
+        this.description = description;
+        this.teacher = teacher;
+    }
+    
+    // Getters and setters
+    public Long getId() {
+        return id;
+    }
+    
+    public void setId(Long id) {
+        this.id = id;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public void setDescription(String description) {
+        this.description = description;
+    }
+    
+    public Long getTeacherId() {
+        return teacherId;
+    }
+    
+    public void setTeacherId(Long teacherId) {
+        this.teacherId = teacherId;
+    }
+    
+    public User getTeacher() {
+        return teacher;
+    }
+    
+    public void setTeacher(User teacher) {
+        this.teacher = teacher;
+        if (teacher != null) {
+            this.teacherId = teacher.getId();
+        }
+    }
+    
+    public List<User> getStudents() {
+        return students;
+    }
+    
+    public void setStudents(List<User> students) {
+        this.students = students;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+    
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    @Override
+    public String toString() {
+        return "Course{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", teacher=" + (teacher != null ? teacher.getName() : "null") +
+                '}';
+    }
 }

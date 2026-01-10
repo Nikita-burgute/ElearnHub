@@ -1,197 +1,5 @@
-//////package com.elearnhub.teacher_service.util;
-//////
-//////import java.io.IOException;
-//////
-//////import org.springframework.beans.factory.annotation.Autowired;
-//////import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-//////import org.springframework.security.core.context.SecurityContextHolder;
-//////import org.springframework.security.core.userdetails.UserDetails;
-//////import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-//////import org.springframework.stereotype.Component;
-//////import org.springframework.web.filter.OncePerRequestFilter;
-//////
-//////import com.elearnhub.teacher_service.service.UserService;
-//////
-//////import jakarta.servlet.FilterChain;
-//////import jakarta.servlet.ServletException;
-//////import jakarta.servlet.http.HttpServletRequest;
-//////import jakarta.servlet.http.HttpServletResponse;
-//////
-//////@Component
-//////public class JwtFilter extends OncePerRequestFilter {
-//////
-//////    @Autowired
-//////    private JwtUtil jwtUtil;
-//////
-//////    @Autowired
-//////    private UserService userService;
-//////
-//////    @Override
-//////    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-//////            throws ServletException, IOException {
-//////        String header = request.getHeader("Authorization");
-//////
-//////        if (header != null && header.startsWith("Bearer ")) {
-//////            String token = header.substring(7);
-//////            String username = jwtUtil.extractUsername(token);
-//////
-//////            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-//////                UserDetails userDetails = userService.loadUserByUsername(username);
-//////
-//////                if (jwtUtil.validateToken(token, userDetails)) {
-//////                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-//////                            userDetails, null, userDetails.getAuthorities());
-//////                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-//////                    SecurityContextHolder.getContext().setAuthentication(authToken);
-//////                }
-//////            }
-//////        }
-//////        chain.doFilter(request, response);
-//////    }
-//////
-//////
-//////}
-////
-////
-////package com.elearnhub.teacher_service.util;
-////
-////import com.elearnhub.teacher_service.service.UserService;
-////import jakarta.servlet.FilterChain;
-////import jakarta.servlet.ServletException;
-////import jakarta.servlet.http.HttpServletRequest;
-////import jakarta.servlet.http.HttpServletResponse;
-////import org.springframework.beans.factory.annotation.Autowired;
-////import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-////import org.springframework.security.core.context.SecurityContextHolder;
-////import org.springframework.security.core.userdetails.UserDetails;
-////import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-////import org.springframework.stereotype.Component;
-////import org.springframework.web.filter.OncePerRequestFilter;
-////
-////import java.io.IOException;
-////
-////@Component
-////public class JwtFilter extends OncePerRequestFilter {
-////
-////    @Autowired
-////    private JwtUtil jwtUtil;
-////
-////    @Autowired
-////    private UserService userService;
-////
-////    @Override
-////    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-////            throws ServletException, IOException {
-////
-////        String authorizationHeader = request.getHeader("Authorization");
-////
-////        String username = null;
-////        String jwt = null;
-////
-////        // Extract JWT token from Authorization header
-////        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-////            jwt = authorizationHeader.substring(7);
-////            try {
-////                username = jwtUtil.extractUsername(jwt);
-////            } catch (Exception e) {
-////                logger.error("Error extracting username from JWT: " + e.getMessage());
-////            }
-////        }
-////
-////        // Validate token and set authentication
-////        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-////            UserDetails userDetails = this.userService.loadUserByUsername(username);
-////
-////            if (jwtUtil.validateToken(jwt, userDetails)) {
-////                UsernamePasswordAuthenticationToken authToken = 
-////                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-////                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-////                SecurityContextHolder.getContext().setAuthentication(authToken);
-////                
-////                logger.info("✅ JWT validated for user: " + username);
-////            } else {
-////                logger.warn("❌ JWT validation failed for user: " + username);
-////            }
-////        }
-////
-////        filterChain.doFilter(request, response);
-////    }
-////}
-//
-//
-//
-//package com.elearnhub.teacher_service.util;
-//
-//import com.elearnhub.teacher_service.service.UserService;
-//import jakarta.servlet.FilterChain;
-//import jakarta.servlet.ServletException;
-//import jakarta.servlet.http.HttpServletRequest;
-//import jakarta.servlet.http.HttpServletResponse;
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-//import org.springframework.security.core.context.SecurityContextHolder;
-//import org.springframework.security.core.userdetails.UserDetails;
-//import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-//import org.springframework.stereotype.Component;
-//import org.springframework.web.filter.OncePerRequestFilter;
-//
-//import java.io.IOException;
-//
-//@Component
-//public class JwtFilter extends OncePerRequestFilter {
-//
-//    @Autowired
-//    private JwtUtil jwtUtil;
-//
-//    @Autowired
-//    private UserService userService;
-//
-//    @Override
-//    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-//            throws ServletException, IOException {
-//
-//        String authorizationHeader = request.getHeader("Authorization");
-//
-//        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-//            String token = authorizationHeader.substring(7);
-//
-//            try {
-//                String username = jwtUtil.extractUsername(token);
-//
-//                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-//                    UserDetails userDetails = userService.loadUserByUsername(username);
-//
-//                    if (jwtUtil.validateToken(token, userDetails)) {
-//                        UsernamePasswordAuthenticationToken auth =
-//                                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-//                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-//                        SecurityContextHolder.getContext().setAuthentication(auth);
-//                    } else {
-//                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-//                        response.setContentType("application/json");
-//                        response.getWriter().write("{\"error\":\"invalid_or_expired_token\"}");
-//                        return;
-//                    }
-//                }
-//            } catch (Exception ex) {
-//                // Any parsing/validation failure -> 401
-//                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-//                response.setContentType("application/json");
-//                response.getWriter().write("{\"error\":\"invalid_or_expired_token\"}");
-//                return;
-//            }
-//        }
-//
-//        filterChain.doFilter(request, response);
-//    }
-//}
-
-
-
-
 package com.elearnhub.teacher_service.util;
 
-import com.elearnhub.teacher_service.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -200,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -217,41 +26,87 @@ public class JwtFilter extends OncePerRequestFilter {
     private JwtUtil jwtUtil;
 
     @Autowired
-    private UserService userService;
+    private UserDetailsService userDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request, 
+            HttpServletResponse response, 
+            FilterChain chain) throws ServletException, IOException {
+
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+
+        // ✅ Skip JWT filter for public endpoints
+        if (path.startsWith("/auth/login") ||
+            path.startsWith("/auth/register") ||
+            path.startsWith("/auth/refresh") ||
+            method.equals("OPTIONS")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // ✅ DEBUG: Log for submission requests
+        if (path.contains("/submissions") && method.equals("POST")) {
+            logger.info("🔍 SUBMISSION REQUEST - Path: {}", path);
+            logger.info("🔍 Authorization Header: {}", request.getHeader("Authorization"));
+            logger.info("🔍 Content-Type: {}", request.getContentType());
+        }
+
+        // ✅ Extract Authorization header
         String authorizationHeader = request.getHeader("Authorization");
 
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             String token = authorizationHeader.substring(7);
+
             try {
                 String username = jwtUtil.extractUsername(token);
+
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = userService.loadUserByUsername(username);
+                    logger.debug("🔍 Extracted username from token: {}", username);
+
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
                     if (jwtUtil.validateToken(token, userDetails)) {
-                        UsernamePasswordAuthenticationToken auth =
-                                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(auth);
-                        logger.info("✅ JWT validated for user: {}", username);
+                        UsernamePasswordAuthenticationToken authToken = 
+                            new UsernamePasswordAuthenticationToken(
+                                userDetails, null, userDetails.getAuthorities());
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                        
+                        logger.debug("✅ Authentication set for user: {}", username);
                     } else {
-                        logger.warn("❌ JWT validation failed for user: {}", username);
-                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                        response.setContentType("application/json");
-                        response.getWriter().write("{\"error\":\"invalid_or_expired_token\"}");
-                        return;
+                        logger.warn("❌ Token validation failed for user: {}", username);
+                        // Don't return here - let Spring Security handle it
+                    }
+                } else {
+                    if (username == null) {
+                        logger.warn("❌ Could not extract username from token");
                     }
                 }
             } catch (Exception ex) {
-                logger.error("Error processing JWT token: {}", ex.getMessage(), ex);
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\":\"invalid_or_expired_token\",\"message\":\"" + ex.getMessage() + "\"}");
-                return;
+                logger.error("❌ JWT validation error: {}", ex.getMessage(), ex);
+                // Don't return here - let Spring Security handle it
+                // If we return here, the request will be anonymous
+            }
+        } else {
+            // ✅ DEBUG: Log when no Authorization header is found
+            if (path.contains("/submissions")) {
+                logger.error("❌ NO AUTHORIZATION HEADER FOUND for submission request!");
+                logger.error("❌ Request path: {}", path);
+                logger.error("❌ Request method: {}", method);
+                
+                // Log all headers for debugging
+                java.util.Enumeration<String> headerNames = request.getHeaderNames();
+                logger.error("=== ALL REQUEST HEADERS ===");
+                while (headerNames.hasMoreElements()) {
+                    String headerName = headerNames.nextElement();
+                    logger.error("Header: {} = {}", headerName, request.getHeader(headerName));
+                }
             }
         }
-        filterChain.doFilter(request, response);
+
+        // ✅ Continue filter chain - don't block the request
+        chain.doFilter(request, response);
     }
 }

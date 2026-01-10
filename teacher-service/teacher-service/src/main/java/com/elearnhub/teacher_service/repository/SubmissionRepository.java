@@ -5,13 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
-    
-    Optional<Submission> findByStudentIdAndAssignmentId(Long studentId, Long assignmentId);
     List<Submission> findByAssignmentId(Long assignmentId);
-    Optional<Submission> findByAssignmentIdAndStudentId(Long assignmentId, Long studentId);
+    List<Submission> findByStudentId(Long studentId);
+    List<Submission> findByAssignmentIdAndStudentId(Long assignmentId, Long studentId);
 }
-
