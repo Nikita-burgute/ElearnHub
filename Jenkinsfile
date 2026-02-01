@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "nikita1608/e-learnhub-meged-withoutcompose:1.0" // lowercase is safer
+        IMAGE_NAME = "nikita1608/e-learnhub-merged-withoutcompose"
         IMAGE_TAG = "2.0"
     }
 
